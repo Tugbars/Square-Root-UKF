@@ -751,6 +751,22 @@ void srukf_step(StudentT_SRUKF *restrict ukf, const double *restrict z)
     srukf_update(ukf, z);
 }
 
+/**
+ * @brief Process multiple measurements in one call (for Python overhead measurement)
+ *
+ * @param ukf       Filter instance
+ * @param z_all     All measurements concatenated (n_steps * nz doubles)
+ * @param n_steps   Number of steps to process
+ */
+void srukf_step_batch(StudentT_SRUKF *restrict ukf, const double *restrict z_all, int n_steps)
+{
+    const int nz = ukf->nz;
+    for (int i = 0; i < n_steps; i++)
+    {
+        srukf_step(ukf, z_all + i * nz);
+    }
+}
+
 /*─────────────────────────────────────────────────────────────────────────────
  * ACCESSORS
  *───────────────────────────────────────────────────────────────────────────*/

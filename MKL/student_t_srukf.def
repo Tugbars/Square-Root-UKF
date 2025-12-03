@@ -26,6 +26,7 @@ EXPORTS
     srukf_predict
     srukf_update
     srukf_step
+    srukf_step_batch
     srukf_predict_only
     srukf_update_partial
     srukf_reset

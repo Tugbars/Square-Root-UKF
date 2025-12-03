@@ -147,6 +147,9 @@ extern "C"
      */
     void srukf_step(StudentT_SRUKF *restrict ukf, const double *restrict z);
 
+    /** Process multiple measurements in one call (for benchmarking) */
+    void srukf_step_batch(StudentT_SRUKF *restrict ukf, const double *restrict z_all, int n_steps);
+
     /*─────────────────────────────────────────────────────────────────────────────
      * ACCESSORS - For downstream (Kelly sizing, kill switch)
      *───────────────────────────────────────────────────────────────────────────*/
