@@ -646,6 +646,118 @@ Total pipeline: ~603 µs, SSA-dominated.
 
 ## Integration
 
+### MKL Configuration
+
+For maximum performance and reproducibility, MKL must be configured correctly.
+
+#### Configuration Files Provided
+
+| File | Purpose |
+|------|---------|
+| `mkl_config.h` | C header with programmatic configuration |
+| `run_mkl_optimized.bat` | Windows startup script |
+| `run_mkl_optimized.sh` | Linux startup script |
+
+#### Key Settings for Quant Trading
+
+| Setting | Value | Rationale |
+|---------|-------|-----------|
+| `MKL_NUM_THREADS` | 1 | Single-threaded for minimum latency (nx < 20) |
+| `MKL_DYNAMIC` | FALSE | Fixed thread count, no runtime overhead |
+| `MKL_ENABLE_INSTRUCTIONS` | AVX512 | Maximum SIMD width |
+| `MKL_CBWR` | AUTO | Deterministic results for reproducibility |
+| `MKL_JIT_MAX_SIZE` | 64 | JIT code gen for small matrices |
+
+#### Programmatic Configuration
+
+```c
+#include "mkl_config.h"
+
+int main() {
+    // Option 1: Default quant trading config
+    mkl_config_init();
+    
+    // Option 2: Specific preset
+    mkl_config_init_preset(MKL_CONFIG_QUANT_LATENCY);
+    
+    // Option 3: Custom configuration
+    MKL_Config cfg = mkl_config_default();
+    cfg.num_threads = 2;  // Use 2 threads
+    cfg.deterministic = true;
+    cfg.verbose = true;
+    mkl_config_apply(&cfg);
+    
+    // Print configuration for logging
+    mkl_config_print_info();
+    
+    // Verify configuration
+    mkl_config_verify();
+    
+    // ... your code ...
+}
+```
+
+#### Script-Based Configuration
+
+**Windows:**
+```batch
+run_mkl_optimized.bat build\Release\my_trading_bot.exe
+```
+
+**Linux:**
+```bash
+chmod +x run_mkl_optimized.sh
+./run_mkl_optimized.sh ./build/my_trading_bot
+```
+
+#### Why These Settings?
+
+**Single-threaded (`MKL_NUM_THREADS=1`):**
+- For matrices smaller than ~100×100, threading overhead exceeds benefit
+- UKF with nx=3 uses 3×7 matrices — threading adds ~500ns latency
+- Single-threaded: predictable, consistent latency
+
+**AVX512 (`MKL_ENABLE_INSTRUCTIONS=AVX512`):**
+- 512-bit vectors process 8 doubles per instruction
+- Even with frequency throttling, faster for small matrices
+- Automatic fallback if not supported
+
+**Determinism (`MKL_CBWR=AUTO`):**
+- Same inputs → same outputs (critical for debugging, backtesting)
+- Slight overhead (~5%) but essential for production
+- `AUTO` mode picks best SIMD while maintaining reproducibility
+
+**JIT (`MKL_JIT_MAX_SIZE=64`):**
+- MKL generates optimized code for specific matrix sizes
+- First call: ~10µs overhead (code generation)
+- Subsequent calls: 2-3× faster than generic BLAS
+- UKF calls same sizes repeatedly — perfect for JIT
+
+#### Expected Output
+
+```
+╔══════════════════════════════════════════════════════════════════╗
+║                    MKL CONFIGURATION                             ║
+╠══════════════════════════════════════════════════════════════════╣
+║ MKL Version: 2024.0.0 (Product)
+║ Build: 20231006
+╠══════════════════════════════════════════════════════════════════╣
+║ Threading:                                                       ║
+║   Max threads: 1
+║   Dynamic: disabled
+╠══════════════════════════════════════════════════════════════════╣
+║ Determinism:                                                     ║
+║   CNR Mode: AUTO
+╠══════════════════════════════════════════════════════════════════╣
+║ CPU Features:                                                    ║
+║   AVX2:   available
+║   AVX512: available
+╠══════════════════════════════════════════════════════════════════╣
+║ Memory:                                                          ║
+║   Recommended alignment: 64 bytes (AVX512)                       ║
+╚══════════════════════════════════════════════════════════════════╝
+```
+
 ### Build Requirements
 
 - CMake 3.16+
@@ -680,12 +792,17 @@ make
 SQR-UKF-MKL/
 ├── MKL/
 │   ├── student_t_srukf.c    # Implementation
-│   └── student_t_srukf.h    # Header
+│   ├── student_t_srukf.h    # Header
+│   └── mkl_config.h         # MKL configuration
 ├── test/
 │   ├── test_srukf.c         # Unit tests
 │   └── bench_srukf.c        # Benchmarks
 ├── CMakeLists.txt
-└── STUDENT_T_SRUKF.md       # This document
+├── run_mkl_optimized.bat    # Windows startup script
+├── run_mkl_optimized.sh     # Linux startup script
+├── STUDENT_T_SRUKF.md       # This document
+├── LICENSE
+└── README.md
 ```
 
 ---

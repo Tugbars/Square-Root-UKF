@@ -7,7 +7,7 @@
  * - State-dependent measurement noise (volatility tracking)
  * - BLAS 3 optimized operations
  * - Zero allocations in hot path
- * - AVX512-ready memory alignment
+ * - AVX2-ready memory alignment (64-byte)
  *
  * State model:
  *   x = [trend, trend_velocity, log_volatility]
@@ -15,6 +15,11 @@
  *   Measurement: linear mean, state-dependent variance via exp(2*xi)
  *
  * Part of stack: SSA → BOCPD → Student-t SQR UKF → Kelly
+ *
+ * MKL Configuration:
+ *   For Intel i9-14900K: include mkl_config_14900k.h and call mkl_14900k_init_full()
+ *   For other CPUs: include mkl_config.h and call mkl_config_init()
+ *   Or use the provided run_mkl_14900k.bat/.sh scripts.
  */
 
 #ifndef STUDENT_T_SRUKF_H
